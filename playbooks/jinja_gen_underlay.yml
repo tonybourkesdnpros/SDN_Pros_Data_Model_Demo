@@ -1,0 +1,11 @@
+---
+- name: Generate configurations via Jinja
+  hosts: all
+  vars_files:
+    ../vars/underlay.yml
+  tasks:
+    - name: Build config from template
+      ansible.builtin.template:
+        src: "templates/underlay.j2"
+        dest: "configs/{{ inventory_hostname }}_underlay.cfg"
+        mode: "0644"

@@ -1,0 +1,57 @@
+---
+- name: Configure underlay
+  hosts: all
+  vars_files:
+    - ../vars/underlay.yml
+  tasks:
+    - name: Configure IP routing
+      arista.eos.eos_config:
+        lines:
+          - "ip routing"
+    - name: Configure loopbacks
+      arista.eos.eos_l3_interfaces:
+        config:
+          - name: "{{ item }}"
+            ipv4:
+              - address: "{{ devices[inventory_hostname]['interfaces']['loopbacks'][item] }}"
+      loop: "{{ devices[inventory_hostname]['interfaces']['loopbacks'] | list }}"
+    - name: Configure p2p interfaces for L3
+      arista.eos.eos_interfaces:
+        config:
+          - name: "{{ item }}"
+            enabled: true
+            mode: layer3
+            mtu: "{{ global_settings['mtu'] }}"
+      loop: "{{ devices[inventory_hostname]['interfaces']['p2p'] }}"
+    - name: Configure p2p interfaces for IP unnumbered
+      arista.eos.eos_l3_interfaces:
+        config:
+          - name: "{{ item }}"
+            ipv4:
+              - address: unnumbered loopback0
+      loop: "{{ devices[inventory_hostname]['interfaces']['p2p'] }}"
+    - name: Configure OSPF process
+      arista.eos.eos_ospfv2:
+        config:
+          processes:
+            - process_id: 10
+              router_id: "{{ devices[inventory_hostname]['interfaces']['loopbacks']['loopback0'].split('/')[0] }}"
+    - name: Configure OSPF interfaces loopbacks
+      arista.eos.eos_ospf_interfaces:
+        config:
+          - name: "{{ item }}"
+            address_family:
+              - afi: "ipv4"
+                area:
+                  area_id: "{{ global_settings['ospf_area'] }}"
+      loop: "{{ devices[inventory_hostname]['interfaces']['loopbacks'] | list }}"
+    - name: Configure OSPF interfaces p2p
+      arista.eos.eos_ospf_interfaces:
+        config:
+          - name: "{{ item }}"
+            address_family:
+              - afi: "ipv4"
+                area:
+                  area_id: "{{ global_settings['ospf_area'] }}"
+                network: point-to-point
+      loop: "{{ devices[inventory_hostname]['interfaces']['p2p'] }}"

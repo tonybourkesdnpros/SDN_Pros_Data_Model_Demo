@@ -1,0 +1,21 @@
+ip routing
+
+{% for interface in devices[inventory_hostname]['interfaces']['p2p'] %}
+interface {{ interface }}
+   mtu {{ global_settings['mtu'] }}
+   no switchport
+   ip address unnumbered Loopback0
+   ip ospf network point-to-point
+   ip ospf area {{ global_settings['ospf_area'] }}
+{% endfor %}
+
+{% for loopback in devices[inventory_hostname]['interfaces']['loopbacks'] %}
+interface {{ loopback }}
+   ip address {{ devices[inventory_hostname]['interfaces']['loopbacks'][loopback] }}
+   ip ospf area {{ global_settings['ospf_area'] }}
+{% endfor %}
+
+{% set ip, mask = devices[inventory_hostname]['interfaces']['loopbacks']['loopback0'].split('/') %}
+router ospf 10
+   router-id {{ ip }}
+   max-lsa 12000
